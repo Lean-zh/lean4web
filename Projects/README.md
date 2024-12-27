@@ -38,3 +38,32 @@ This will add an entry `My Cool Example` to the Example menu which loads
 the file from `Projects/my-cool-project/MyCustomProject/Demo1.lean`.
 
 You might want to look at the provided `mathlib-demo` project for comparison.
+
+## Creating Mathlib Projects with Different Versions
+
+To create a new mathlib project with a specific Lean version, you can use the script `create_project.sh`:
+
+```bash
+./create_project.sh <version>
+```
+
+The version should be in the format of `v4.x.x` or `4.x.x`. For example:
+```bash
+./create_project.sh v4.13.0
+# or
+./create_project.sh 4.13.0
+```
+
+This will:
+1. Create a new project in `Projects/<version>/`
+2. Set up the correct Lean toolchain version
+3. Configure mathlib dependencies
+4. Build the project with cache
+
+Finally, you can add the project to the `config.json` file as described above.
+
+```
+{ "folder": "v4.13.0",
+  "name": "Lean 4.13.0",
+}
+```
