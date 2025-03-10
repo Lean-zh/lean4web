@@ -22,6 +22,7 @@ const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
 const environment = process.env.NODE_ENV
+const isGithubAction = process.env.GITHUB_ACTIONS
 const isDevelopment = environment === 'development'
 
 const crtFile = process.env.SSL_CRT_FILE
@@ -78,7 +79,9 @@ function startServerProcess(project) {
 
   let serverProcess
   if (isDevelopment) {
-    console.warn("Running without Bubblewrap container!")
+    if (!isGithubAction) {
+      console.warn("Running without Bubblewrap container!")
+    }
     serverProcess = cp.spawn("lean", ["--server"], { cwd: projectPath })
   } else {
     console.info("Running with Bubblewrap container.")
@@ -124,28 +127,32 @@ wss.addListener("connection", function(ws, req) {
   const socketConnection = jsonrpcserver.createConnection(reader, writer, () => ws.close())
   const serverConnection = jsonrpcserver.createProcessStreamConnection(ps)
   socketConnection.forward(serverConnection, message => {
-    // if (isDevelopment) {
-    //   console.log(`CLIENT: ${JSON.stringify(message)}`)
-    // }
+    if (isDevelopment && !isGithubAction) {
+      console.log(`CLIENT: ${JSON.stringify(message)}`)
+    }
     return message;
   })
   serverConnection.forward(socketConnection, message => {
-    // if (isDevelopment) {
-    //   console.log(`SERVER: ${JSON.stringify(message)}`)
-    // }
+    if (isDevelopment && !isGithubAction) {
+      console.log(`SERVER: ${JSON.stringify(message)}`)
+    }
     return message;
   });
 
   ws.on('close', () => {
-    console.log(`[${new Date()}] Socket closed - ${ip}`)
     socketCounter -= 1
+    if (!isGithubAction) {
+      console.log(`[${new Date()}] Socket closed - ${ip}`)
+      logStats()
+    }
   })
 
   socketConnection.onClose(() => serverConnection.dispose())
   serverConnection.onClose(() => socketConnection.dispose())
 
-  console.log(`[${new Date()}] Socket opened - ${ip}`)
   socketCounter += 1
-  logStats()
-
+  if (!isGithubAction) {
+    console.log(`[${new Date()}] Socket opened - ${ip}`)
+    logStats()
+  }
 })
