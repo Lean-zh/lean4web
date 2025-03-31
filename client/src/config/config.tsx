@@ -8,18 +8,12 @@ const lean4webConfig : LeanWebConfig = {
     { "folder": "v4.14.0",
       "name": "v4.14.0"
     },
-    { "folder": "v4.13.0",
-      "name": "v4.13.0"
-    },
-    { "folder": "v4.12.0",
-      "name": "v4.12.0"
-    },
     { "folder": "v4.10.0",
       "name": "v4.10.0",
     },
-    { "folder": "v4.7.0",
-      "name": "v4.7.0",
-    },
+    // { "folder": "lips-0324",
+    //   "name": "lips-0324",
+    // }
   ],
   "serverCountry": null,
   "contactDetails": null,
