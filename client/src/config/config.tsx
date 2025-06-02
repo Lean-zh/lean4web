@@ -3,13 +3,11 @@ import { LeanWebConfig } from './docs' // look here for documentation of the ind
 const lean4webConfig : LeanWebConfig = {
   "projects": [
     { "folder": "mathlib-demo",
-      "name": "v4.17.0",},
-    { "folder": "v4.14.0",
       "name": "v4.14.0",},
+    { "folder": "v4.19.0",
+      "name": "v4.19.0",},
     { "folder": "v4.10.0",
       "name": "v4.10.0"},
-    { "folder": "lips-0324",
-      "name": "lips-0324"}
   ],
   "serverCountry": null,
   "contactDetails": null,
