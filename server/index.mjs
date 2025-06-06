@@ -10,6 +10,7 @@ import anonymize from 'ip-anonymize'
 import os from 'os'
 import http from 'http'
 import https from 'https'
+import fs from 'fs'; // Ensure 'fs' module is imported
 
 let socketCounter = 0
 
@@ -76,38 +77,60 @@ const wss = new WebSocketServer({ server })
 
 // The path to the projects folder relative to the server
 let projectsBasePath = path.join(__dirname, '..', 'Projects')
+const DEFAULT_PROJECT = 'MathlibDemo'; // Define the default project
 
 function startServerProcess(project) {
-  let projectPath = path.join(projectsBasePath, project)
+  let projectPath = path.join(projectsBasePath, project);
+  let effectiveProjectPath = projectPath;
+  let usedProject = project;
 
-  let serverProcess
+  // Check if the requested project path exists
+  if (!fs.existsSync(projectPath)) {
+    console.warn(`[${new Date()}] Requested project path does not exist: ${projectPath}. Attempting to use default project.`);
+    effectiveProjectPath = path.join(projectsBasePath, DEFAULT_PROJECT);
+    usedProject = DEFAULT_PROJECT;
+
+    // Check if the default project path exists
+    if (!fs.existsSync(effectiveProjectPath)) {
+      console.error(`[${new Date()}] Default project path also does not exist: ${effectiveProjectPath}. Cannot start Lean server.`);
+      return null; // Or handle the error in a way that doesn't crash the server
+    }
+    console.log(`[${new Date()}] Switched to default project: ${DEFAULT_PROJECT}`);
+  }
+
+  let serverProcess;
   if (isDevelopment) {
     if (!isGithubAction) {
       console.warn("Running without Bubblewrap container!")
     }
-    serverProcess = cp.spawn("lake", ["serve", "--"], { cwd: projectPath })
+    serverProcess = cp.spawn("lake", ["serve", "--"], { cwd: effectiveProjectPath });
   } else {
     console.info("Running with Bubblewrap container.")
-    serverProcess = cp.spawn("./bubblewrap.sh", [projectPath], { cwd: __dirname })
+    // Pass the actual project name (usedProject) to bubblewrap.sh, not the full path
+    // bubblewrap.sh expects the project directory name as its argument, 
+    // and it constructs the path relative to /srv/lean4web/Projects/ internally (or similar based on its logic)
+    // However, our current bubblewrap.sh takes the full path.
+    // So we pass effectiveProjectPath which is the full path to the project to be used.
+    serverProcess = cp.spawn("./bubblewrap.sh", [effectiveProjectPath], { cwd: __dirname });
   }
 
   // serverProcess.stdout.on('data', (data) => {
-  //   console.log(`Lean Server: ${data}`);
+  //   console.log(`Lean Server (${usedProject}): ${data}`);
   // });
 
   serverProcess.stderr.on('data', data =>
-    console.error(`Lean Server: ${data}`)
-  )
+    console.error(`Lean Server (${usedProject}): ${data}`)
+  );
 
   serverProcess.on('error', error =>
-    console.error(`Launching Lean Server failed: ${error}`)
-  )
+    console.error(`Launching Lean Server (${usedProject}) failed: ${error}`)
+  );
 
   serverProcess.on('close', (code) => {
-    console.log(`lean server exited with code ${code}`);
+    console.log(`Lean server (${usedProject}) exited with code ${code}`);
   });
 
-  return serverProcess
+  return serverProcess;
 }
 
 /** Transform client URI to valid file on the server */
@@ -147,11 +170,17 @@ function FilenamesToUri(prefix, obj) {
 wss.addListener("connection", function(ws, req) {
   const urlRegEx = /^\/websocket\/([\w.-]+)$/
   const reRes = urlRegEx.exec(req.url)
-  if (!reRes) { console.error(`Connection refused because of invalid URL: ${req.url}`); return; }
+  if (!reRes) { console.error(`Connection refused because of invalid URL: ${req.url}`); ws.close(); return; }
   const project = reRes[1]
 
   const ip = anonymize(req.headers['x-forwarded-for'] || req.socket.remoteAddress)
-  const ps = startServerProcess(project)
+  const ps = startServerProcess(project) // project name from URL
+
+  if (!ps) { // If startServerProcess returned null (e.g., project path and default project path don't exist)
+    console.error(`[${new Date()}] Failed to start server process for project: ${project} (and default failed). Closing connection.`);
+    ws.close();
+    return;
+  }
 
   const socket = {
       onMessage: (cb) => { ws.on("message", cb) },
