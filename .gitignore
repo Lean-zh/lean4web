@@ -14,6 +14,7 @@ dist-ssr
 
 cypress/screenshots
 cypress/videos
+/Projects/
 
 **/.lake
 
