@@ -19,10 +19,10 @@ exec bwrap\
   --dev /dev \
   --tmpfs /tmp \
   --proc /proc \
-  --symlink usr/lib /lib\
-  --symlink usr/lib64 /lib64\
-  --symlink usr/bin /bin\
-  --symlink usr/sbin /sbin\
+  --symlink /usr/lib /lib\
+  --symlink /usr/lib64 /lib64\
+  --symlink /usr/bin /bin\
+  --symlink /usr/sbin /sbin\
   --clearenv \
   --setenv PATH "/bin:/usr/bin:/lean/bin" \
   --setenv LEAN_SRC_PATH "$LEAN_SRC_PATH" \
